@@ -69,6 +69,10 @@ typeLookup x env = case lookup x env of
 -- subtree steps) since it has to check every element for a capture-avoiding
 -- substitution, as well as performing the cost of the actual application.
 
+-- IDEAS FOR NEXT STEPS: Lists, tuples, primitive map etc.
+-- Let would be helpful to add, but seems to already be used (unless we add
+-- let... in instead? replace let with def maybe?)
+
 infer :: Expr -> TyEnv -> Either String Type
 -- Value lookup costs zero time.
 infer (Val _)      _   = do return natType
