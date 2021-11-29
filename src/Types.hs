@@ -8,6 +8,7 @@
 module Types (
     TyName,
     Type(..),
+    Cost,
     natType,
     funType
 ) where
@@ -42,6 +43,10 @@ data Type = ConTy TyName
 instance Show Type where
     show (ConTy n)   = n
     show (FunTy d c) = "(" ++ show d ++ " -> " ++ show c ++ ")"
+
+-- Costs are simply Ints.
+
+type Cost = Int
 
 {--------------------------------------------------------------------------------------------------
                                             End of File                                            

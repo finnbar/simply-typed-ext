@@ -134,7 +134,7 @@ eval env e = evalState (runExceptT (eval' e)) env
 
 evalDef :: GlEnv -> Definition -> Either String GlEnv
 evalDef env (Def var e) = do
-    ty <- infer e (toTyEnv env)
+    (ty, cost) <- infer e (toTyEnv env)
     let gldef = GlDef {glExpr = e, glType = ty}
     return $ (var, gldef) : env
 

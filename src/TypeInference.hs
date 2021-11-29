@@ -73,42 +73,62 @@ typeLookup x env = case lookup x env of
 -- Let would be helpful to add, but seems to already be used (unless we add
 -- let... in instead? replace let with def maybe?)
 
-infer :: Expr -> TyEnv -> Either String Type
+-- TODO: fix the wrong ones, then fix all calls of infer
+
+infer :: Expr -> TyEnv -> Either String (Type, Cost)
 -- Value lookup costs zero time.
-infer (Val _)      _   = do return natType
+infer (Val _)      _   = do return (natType, 0)
 -- This is a challenge, since it depends on the cost of the variable - it could
 -- be a substitution from an earlier App (in which case, it is that cost), or a
 -- definition lookup (in which case, it is the cost of lookup + cost of that
 -- actual code). This will need a CostEnv.
-infer (Var x)      env = do typeLookup x env
+infer (Var x)      env = do ty <- typeLookup x env
+                            return (ty, 0) -- TODO: LARGER THAN ZERO...
 -- Abstractions cost the time of their internal code.
 -- However, an abstraction with no application should cost zero time - so maybe
 -- the best solution is to make abstractions cost zero time, but App costs the
 -- inside of an abstraction as extra time.
-infer (Abs x t e)  env = do t' <- infer e ((x,t) : env)
-                            return (FunTy t t')
+infer (Abs x t e)  env = do (t', c') <- infer e ((x,t) : env)
+                            return (FunTy t t', c') -- TODO: THIS IS WRONG
 -- Succ, Pred, IsZero cost one time.
-infer (Succ e)     env = do t <- infer e env
+infer (Succ e)     env = do (t, c) <- infer e env
                             ensure t natType
-infer (Pred e)     env = do t <- infer e env
+                            return (t, c+1)
+infer (Pred e)     env = do (t, c) <- infer e env
                             ensure t natType
-infer (IsZero e)   env = do t <- infer e env
+                            return (t, c+1)
+infer (IsZero e)   env = do (t, c) <- infer e env
                             ensure t natType
+                            return (t, c+1)
 -- Uhhhhhhhhhhhhh I don't really know what to do here. Maybe there's a paper on
 -- recursion and cost estimation? Especially as this is possibly unbounded.
-infer (Fix f)      env = do t <- infer f env
+infer (Fix f)      env = do (t, c) <- infer f env
                             isFixFunction t
+                            return (t, c) -- TODO: ???
 -- Has the cost of f plus |f| to apply the capture-avoiding substitution.
 -- Cost of x is added to a cost environment.
-infer (App f x)    env = do ft <- infer f env
-                            xt <- infer x env
-                            unify ft xt
+infer (App f x)    env = do (ft, fc) <- infer f env
+                            (xt, xc) <- infer x env
+                            ty <- unify ft xt
+                            return (ty, fc + casCost f)
 -- Time is time(c) + max(time(t), time(f)).
-infer (Cond c t f) env = do ct <- infer c env
+infer (Cond c t f) env = do (ct, cc) <- infer c env
                             ensure ct natType
-                            tt <- infer t env
-                            ft <- infer f env
+                            (tt, tc) <- infer t env
+                            (ft, fc) <- infer f env
                             ensure tt ft
+                            return (tt, cc + max tc fc)
+
+casCost :: Expr -> Cost
+casCost (Val _) = 1
+casCost (Var _) = 1
+casCost (Abs x t e) = 1 + casCost e
+casCost (Succ e) = casCost e
+casCost (Pred e) = casCost e
+casCost (IsZero e) = casCost e
+casCost (Fix f) = casCost f
+casCost (App f x) = casCost f + casCost x
+casCost (Cond c t f) = casCost c + casCost t + casCost f
 
 {--------------------------------------------------------------------------------------------------
                                             End of File                                            
