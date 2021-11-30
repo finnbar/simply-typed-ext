@@ -7,7 +7,7 @@ module Parser (
 ) where
 
 import Token
-import Types
+import Types hiding (Succ)
 import AST
 }
 

@@ -23,7 +23,7 @@ import Control.Applicative
 import Control.Monad.Except hiding (fix)
 import Control.Monad.State hiding (fix)
 
-import Types
+import Types hiding (Succ)
 import TypeInference
 import AST
     
@@ -134,7 +134,7 @@ eval env e = evalState (runExceptT (eval' e)) env
 
 evalDef :: GlEnv -> Definition -> Either String GlEnv
 evalDef env (Def var e) = do
-    (ty, cost) <- infer e (toTyEnv env)
+    ty <- infer e (toTyEnv env)
     let gldef = GlDef {glExpr = e, glType = ty}
     return $ (var, gldef) : env
 

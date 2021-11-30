@@ -18,7 +18,7 @@ module AST (
 {----------------------------------------------------------------------}
   
 import Data.List (union)
-import Types
+import Types hiding (Succ)
 
 {----------------------------------------------------------------------}
 {-- Abstract Syntax Tree                                              -}
@@ -33,7 +33,7 @@ data Definition = Def String Expr
     
 data Expr = Val Int
           | Var Variable
-          | Abs Variable Type Expr
+          | Abs Variable Ty Expr
           | Succ Expr
           | Pred Expr
           | IsZero Expr
